@@ -1,3 +1,4 @@
+torch
 gradio
 transformers
 python-docx
