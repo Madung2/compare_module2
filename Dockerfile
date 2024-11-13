@@ -38,4 +38,4 @@ ENV PYTHONUNBUFFERED 1
 
 
 # Command to run your application
-CMD ["gradio", "app.py"]
+CMD ["python", "app.py"]
