@@ -148,7 +148,24 @@ def highlight_target_in_html(html_content, target):
     highlighted_html = html_content.replace(
         target, f"<mark style='background-color: yellow'>{target}</mark>")
     return highlighted_html
-
+def highlight_target_in_html(html_content, target):
+    # Step 1: 기본적으로 모든 `target`을 하이라이트
+    highlighted_html = html_content.replace(target, f"<mark style='background-color: yellow'>{target}</mark>")
+    
+    # Step 2: BeautifulSoup을 사용하여 행 단위로 처리
+    soup = BeautifulSoup(highlighted_html, 'html.parser')
+    rows = soup.find_all('tr')
+    for row in rows:
+        cells = row.find_all('td')  # 각 행의 모든 셀을 찾음
+        # 첫 번째 셀에 하이라이트가 있는지 검사
+        if cells and '<mark style=' in cells[0].decode_contents():
+            # 모든 셀에 하이라이트 적용
+            for cell in cells:
+                cell_contents = cell.decode_contents()
+                # 기존에 이미 하이라이트가 적용되지 않은 경우 추가로 하이라이트 적용
+                if '<mark style=' not in cell_contents:
+                    cell.string = cell_contents.replace(target, f"<mark style='background-color: yellow'>{target}</mark>")
+    return str(soup)
 def process_files(agreement_file, opinion_file, json_input):
     try:
         json_input = json.loads(json_input)
