@@ -96,7 +96,7 @@ def read_docx(file):
 
 def compare_texts(text1, text2, json_input):
     res = []
-    for k, v in json_input.items():
+    for json_key, v in json_input.items():
         contract_block = v['contract']['block']
         opinion_block = v['opinion']['block']
         contract_syn = v['contract']['syn']
@@ -110,9 +110,9 @@ def compare_texts(text1, text2, json_input):
                     if any(s in line for s in contract_syn):
                         if res_type:
                             ner_res = run_ner(line, res_type) # 지금은 res값이 1개
-                            con_res = {'all_text': v, 'target': line, 'sp_target':ner_res}
+                            con_res = {'all_text': v, 'target': line, 'sp_target':ner_res, 'title':k}
                         else:
-                            con_res = {'all_text': v, 'target': line}
+                            con_res = {'all_text': v, 'target': line, 'title':k}
                         break
         op_res = {}
         for key, table in text2.items():
@@ -121,8 +121,8 @@ def compare_texts(text1, text2, json_input):
                 html_table = df.to_html(index=False, escape=False)
                 for s in opinion_syn:
                     if s in html_table:
-                        op_res = {'all_text': html_table, 'target': s}
-        res.append([con_res, op_res])
+                        op_res = {'all_text': html_table, 'target': s, 'title':key}
+        res.append([con_res, op_res, json_key])
     return res
 
 def highlight_target_in_html(html_content, target):
@@ -143,7 +143,7 @@ def process_files(agreement_file, opinion_file, json_input):
     opinion_output = ""
 
     for index, (con, op) in enumerate(comparison_result):
-        agreement_output += f"\n ### 약정서 내용 (섹션 {index + 1})\n"
+        agreement_output += f"\n ### 약정서 내용 (섹션 {index + 1}: {con['title']})\n"
         if isinstance(con, dict) and 'all_text' in con and 'target' in con:
             for idx, text in enumerate(con['all_text'], start=1):
                 if text == con['target']:
@@ -159,7 +159,7 @@ def process_files(agreement_file, opinion_file, json_input):
         else:
             agreement_output += f"{con}\n\n"
 
-        opinion_output += f"\n ### 의견서 내용 (섹션 {index + 1})\n"
+        opinion_output += f"\n ### 의견서 내용 (섹션 {index + 1}: {op['title']})\n"
         if isinstance(op, dict) and 'all_text' in op:
             if op['target'] in op['all_text']:
                 highlighted_html = highlight_target_in_html(op['all_text'], op['target'])
@@ -168,18 +168,7 @@ def process_files(agreement_file, opinion_file, json_input):
 
 
     # 맞춤을 위해 zip_longest 사용하여 길이 조정
-    combined_output = []
-    for agreement, opinion in zip_longest(agreement_output, opinion_output, fillvalue="<div>내용 없음</div>"):
-        combined_output.append(
-            f"<div style='display: flex; justify-content: space-between;'>"
-            f"<div style='width: 48%; padding-right: 2%; border-right: 1px solid #ccc;'>{agreement}</div>"
-            f"<div style='width: 48%; padding-left: 2%;'>{opinion}</div>"
-            f"</div>"
-        )
 
-    # 최종 HTML 출력
-    final_output = "\n".join(combined_output)
-    return final_output, ""
 ################################################################
 
     return agreement_output, opinion_output
@@ -218,14 +207,14 @@ with gr.Blocks() as demo:
     compare_button = gr.Button("비교 실행")
     
     with gr.Row():
-        final_output = gr.Markdown(label= "결과")
-        # agreement_output = gr.Markdown(label="약정서 내용")
-        # opinion_output = gr.Markdown(label="의견서 내용")
+        # final_output = gr.Markdown(label= "결과")
+        agreement_output = gr.Markdown(label="약정서 내용")
+        opinion_output = gr.Markdown(label="의견서 내용")
     
     compare_button.click(
         process_files,
         inputs=[agreement_file, opinion_file, json_input_box],
-        outputs = [final_output]
-        #outputs=[agreement_out`:put, opinion_output]
+        # outputs = [final_output]
+        outputs=[agreement_output, opinion_output]
     )
 demo.launch(server_name="0.0.0.0", server_port=7860)
