@@ -163,7 +163,8 @@ def process_files(agreement_file, opinion_file, json_input):
         if isinstance(op, dict) and 'all_text' in op:
             if op['target'] in op['all_text']:
                 highlighted_html = highlight_target_in_html(op['all_text'], op['target'])
-                opinion_output += highlighted_html            else:
+                opinion_output += highlighted_html            
+            else:
                 opinion_output += op['all_text']
 
 
