@@ -110,7 +110,7 @@ def compare_texts(text1, text2, json_input):
                     if any(s in line for s in contract_syn):
                         if res_type:
                             ner_res = run_ner(line, res_type) # 지금은 res값이 1개
-                            con_res = {'all_text': v, 'target': ner_res}
+                            con_res = {'all_text': v, 'target': line, 'sp_target':ner_res}
                         else:
                             con_res = {'all_text': v, 'target': line}
                         break
@@ -147,8 +147,13 @@ def process_files(agreement_file, opinion_file, json_input):
         if isinstance(con, dict) and 'all_text' in con and 'target' in con:
             for idx, text in enumerate(con['all_text'], start=1):
                 if text == con['target']:
-                    highlighted_target = highlight_text(text)
-                    agreement_output += f"{idx}. {highlighted_target}\n\n"
+                    if 'sp_target' in con:
+                        # ner 값만 하이라이트
+                        highlighted_target = highlight_ner(text, con['sp_target'])
+                        agreement_output += f"{idx}. {highlighted_target}\n\n"
+                    else:
+                        highlighted_target = highlight_text(text)
+                        agreement_output += f"{idx}. {highlighted_target}\n\n"
                 else:
                     agreement_output += f"{idx}. {text}\n\n"
         else:
