@@ -142,7 +142,7 @@ def process_files(agreement_file, opinion_file, json_input):
     agreement_output = ""
     opinion_output = ""
 
-    for index, (con, op) in enumerate(comparison_result):
+    for index, (con, op, rep) in enumerate(comparison_result):
         agreement_output += f"\n ### 약정서 내용 (섹션 {index + 1}: {con['title']})\n"
         if isinstance(con, dict) and 'all_text' in con and 'target' in con:
             for idx, text in enumerate(con['all_text'], start=1):
