@@ -218,8 +218,9 @@ with gr.Blocks() as demo:
     compare_button = gr.Button("비교 실행")
     
     with gr.Row():
-        agreement_output = gr.Markdown(label="약정서 내용")
-        opinion_output = gr.Markdown(label="의견서 내용")
+        final_output = gr.Markdown(label= "결과")
+        # agreement_output = gr.Markdown(label="약정서 내용")
+        # opinion_output = gr.Markdown(label="의견서 내용")
     
     compare_button.click(
         process_files,
