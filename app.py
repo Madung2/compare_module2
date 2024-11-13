@@ -16,12 +16,20 @@ def highlight_text(text):
     return f"<mark style='background-color: yellow'>{text}</mark>"
 
 def highlight_ner(text, res_type):
+    print('highlight:', text)
     ner_results = ner_pipeline(text)
     highlighted_text = text
     for entity in ner_results:
         if entity['entity_group'] == res_type:
             highlighted_text = highlighted_text.replace(entity['word'], highlight_text(entity['word']))
     return highlighted_text
+
+def run_ner(text, res_type):
+    # 지금은 첫번째것만 리턴하고 있음
+    ner_results = ner_pipeline(text)
+    for entity in ner_results:
+        if entity['entity_group'] == res_type:
+            return entity['word']
 
 def reorganize_result(result):
     reorganized = []
@@ -101,8 +109,8 @@ def compare_texts(text1, text2, json_input):
                 for line in v:
                     if any(s in line for s in contract_syn):
                         if res_type:
-                            highlighted_line = highlight_ner(line, res_type)
-                            con_res = {'all_text': v, 'target': highlighted_line}
+                            ner_res = run_ner(line, res_type) # 지금은 res값이 1개
+                            con_res = {'all_text': v, 'target': ner_res}
                         else:
                             con_res = {'all_text': v, 'target': line}
                         break
@@ -190,4 +198,4 @@ with gr.Blocks() as demo:
         inputs=[agreement_file, opinion_file, json_input_box],
         outputs=[agreement_output, opinion_output]
     )
-demo.launch(server_name="0.0.0.0", server_port=7860)
+demo.launch(server_name="0.0.0.0", server_port=78)
