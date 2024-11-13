@@ -198,4 +198,4 @@ with gr.Blocks() as demo:
         inputs=[agreement_file, opinion_file, json_input_box],
         outputs=[agreement_output, opinion_output]
     )
-demo.launch(server_name="0.0.0.0", server_port=78)
+demo.launch(server_name="0.0.0.0", server_port=7860)
