@@ -179,6 +179,14 @@ json_input = """
     "상환방법" : {
         "contract": {"block":["대출금의 상환"], "syn":["일시", "분할"] },
         "opinion" : {"block":["신청내용"], "syn":["만기"] }
+    },
+    "대리금융기관" : {
+        "contract": {"block":["대출계약서"], "syn":["대리금융기관"], "res":"ORG" },
+        "opinion" : {"block":["신청내용"], "syn":["대리금융기관"], "res":"ORG" }
+    }
+    "상환방법" : {
+        "contract": {"block":["대출계약서"], "syn":["조달액"], "res":"NMB" },
+        "opinion" : {"block":["신청내용"], "syn":["조달금액"], "res":"NMB" }
     }
 }
 """
