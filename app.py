@@ -162,9 +162,9 @@ def highlight_target_in_html(html_content, target):
             # 모든 셀에 하이라이트 적용
             for cell in cells:
                 cell_contents = cell.decode_contents()
-                # 기존에 이미 하이라이트가 적용되지 않은 경우 추가로 하이라이트 적용
-                if '<mark style=' not in cell_contents:
-                    cell.string = cell_contents.replace(target, f"<mark style='background-color: yellow'>{target}</mark>")
+                # 셀의 기존 내용을 전체 하이라이트 처리
+                cell.clear()
+                cell.append(BeautifulSoup(f"<mark style='background-color: yellow'>{cell_contents}</mark>", 'html.parser'))
     return str(soup)
 def process_files(agreement_file, opinion_file, json_input):
     try:
