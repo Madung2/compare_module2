@@ -149,7 +149,7 @@ def process_files(agreement_file, opinion_file, json_input):
                 if text == con['target']:
                     if 'sp_target' in con:
                         # ner 값만 하이라이트
-                        highlighted_target = highlight_ner(text, con['sp_target'])
+                        highlighted_target = highlight_target_in_html(text, con['sp_target'])
                         agreement_output += f"{idx}. {highlighted_target}\n\n"
                     else:
                         highlighted_target = highlight_text(text)
