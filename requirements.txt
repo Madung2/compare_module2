@@ -2,3 +2,4 @@ torch
 gradio
 transformers
 python-docx
+beautifulsoup4

@@ -5,13 +5,32 @@ from lxml import etree
 import zipfile
 import pandas as pd
 from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline
-
+import re
+from bs4 import BeautifulSoup
 # Initialize NER pipeline
 model_name = "xlm-roberta-large-finetuned-conll03-english"
 tokenizer = AutoTokenizer.from_pretrained(f"FacebookAI/{model_name}")
 model = AutoModelForTokenClassification.from_pretrained(f"FacebookAI/{model_name}")
 ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer, aggregation_strategy="simple")
 
+def highlight_target_in_html(html_content, target):
+    # Step 1: 기본적으로 모든 `target`을 하이라이트
+    highlighted_html = html_content.replace(target, f"<mark style='background-color: yellow'>{target}</mark>")
+    
+    # Step 2: BeautifulSoup을 사용하여 행 단위로 처리
+    soup = BeautifulSoup(highlighted_html, 'html.parser')
+    rows = soup.find_all('tr')
+    for row in rows:
+        cells = row.find_all('td')  # 각 행의 모든 셀을 찾음
+        # 첫 번째 셀에 하이라이트가 있는지 검사
+        if cells and '<mark style=' in cells[0].decode_contents():
+            # 모든 셀에 하이라이트 적용
+            for cell in cells:
+                cell_contents = cell.decode_contents()
+                # 기존에 이미 하이라이트가 적용되지 않은 경우 추가로 하이라이트 적용
+                if '<mark style=' not in cell_contents:
+                    cell.string = cell_contents.replace(target, f"<mark style='background-color: yellow'>{target}</mark>")
+    return str(soup)
 def highlight_text(text):
     return f"<mark style='background-color: yellow'>{text}</mark>"
 
@@ -159,7 +178,7 @@ def process_files(agreement_file, opinion_file, json_input):
         else:
             agreement_output += f"{con}\n\n"
 
-        opinion_output += f"\n ### 의견서 내용 (섹션 {index + 1}: {op['title']})\n"
+        opinion_output += f"\n\n### 의견서 내용 (섹션 {index + 1}: {op['title']})\n"
         if isinstance(op, dict) and 'all_text' in op:
             if op['target'] in op['all_text']:
                 highlighted_html = highlight_target_in_html(op['all_text'], op['target'])
@@ -189,7 +208,7 @@ json_input = """
         "contract": {"block":["대출계약서"], "syn":["대리금융기관"], "res":"ORG" },
         "opinion" : {"block":["신청내용"], "syn":["대리금융기관"], "res":"ORG" }
     },
-    "상환방법" : {
+    "대출금액" : {
         "contract": {"block":["대출계약서"], "syn":["조달액"]},
         "opinion" : {"block":["신청내용"], "syn":["조달금액"]}
     }
