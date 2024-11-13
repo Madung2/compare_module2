@@ -5,7 +5,7 @@ from lxml import etree
 import zipfile
 import pandas as pd
 from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline
-
+from itertools import zip_longest
 # Initialize NER pipeline
 model_name = "xlm-roberta-large-finetuned-conll03-english"
 tokenizer = AutoTokenizer.from_pretrained(f"FacebookAI/{model_name}")
@@ -139,36 +139,46 @@ def process_files(agreement_file, opinion_file, json_input):
     agreement_text = read_docx(agreement_file)
     opinion_text = read_opinion(opinion_file)
     comparison_result = compare_texts(agreement_text, opinion_text, json_input)
-    agreement_output = ""
-    opinion_output = ""
+    
+    agreement_output = []
+    opinion_output = []
 
     for index, (con, op) in enumerate(comparison_result):
-        agreement_output += f"### 약정서 내용 (섹션 {index + 1})\n"
+        # 약정서 처리
+        agreement_text_output = f"### 약정서 내용 (섹션 {index + 1})\n"
         if isinstance(con, dict) and 'all_text' in con and 'target' in con:
             for idx, text in enumerate(con['all_text'], start=1):
                 if text == con['target']:
-                    if 'sp_target' in con:
-                        # ner 값만 하이라이트
-                        highlighted_target = highlight_target_in_html(text, con['sp_target'])
-                        agreement_output += f"{idx}. {highlighted_target}\n\n"
-                    else:
-                        highlighted_target = highlight_text(text)
-                        agreement_output += f"{idx}. {highlighted_target}\n\n"
+                    highlighted_target = highlight_text(text)
+                    agreement_text_output += f"{idx}. {highlighted_target}\n\n"
                 else:
-                    agreement_output += f"{idx}. {text}\n\n"
+                    agreement_text_output += f"{idx}. {text}\n\n"
         else:
-            agreement_output += f"{con}\n\n"
+            agreement_text_output += "내용 없음\n\n"
 
-        opinion_output += f"### 의견서 내용 (섹션 {index + 1})\n"
+        agreement_output.append(agreement_text_output)
+
+        # 의견서 처리
+        opinion_text_output = f"### 의견서 내용 (섹션 {index + 1})\n"
         if isinstance(op, dict) and 'all_text' in op:
             if op['target'] in op['all_text']:
                 highlighted_html = highlight_target_in_html(op['all_text'], op['target'])
-                opinion_output += highlighted_html
+                opinion_text_output += highlighted_html
             else:
-                opinion_output += op['all_text']
+                opinion_text_output += op['all_text']
+        else:
+            opinion_text_output += "내용 없음\n\n"
 
-    return agreement_output, opinion_output
+        opinion_output.append(opinion_text_output)
 
+    # 맞춤을 위해 zip_longest 사용하여 길이 조정
+    combined_output = []
+    for agreement, opinion in zip_longest(agreement_output, opinion_output, fillvalue="내용 없음\n"):
+        combined_output.append(f"<div style='display: flex;'><div style='width: 50%; padding-right: 10px;'>{agreement}</div><div style='width: 50%;'>{opinion}</div></div>")
+
+    # 최종 HTML 출력
+    final_output = "\n".join(combined_output)
+    return final_output, ""
 # Gradio interface
 json_input = """
 {
@@ -183,10 +193,10 @@ json_input = """
     "대리금융기관" : {
         "contract": {"block":["대출계약서"], "syn":["대리금융기관"], "res":"ORG" },
         "opinion" : {"block":["신청내용"], "syn":["대리금융기관"], "res":"ORG" }
-    }
+    },
     "상환방법" : {
-        "contract": {"block":["대출계약서"], "syn":["조달액"], "res":"NMB" },
-        "opinion" : {"block":["신청내용"], "syn":["조달금액"], "res":"NMB" }
+        "contract": {"block":["대출계약서"], "syn":["조달액"]},
+        "opinion" : {"block":["신청내용"], "syn":["조달금액"]}
     }
 }
 """
