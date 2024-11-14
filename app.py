@@ -73,29 +73,74 @@ def create_text_table_mapping(result):
             mapping[previous_text] = item['res']
             previous_text = None
     return mapping
-
+def extract_table_mapping(doc_order):
+    """
+    This function takes a list of dictionaries representing document structures,
+    and extracts key-value pairs where keys are the 'out' values of the 'para'
+    type entries right before 'table' type entries, and values are the 'out' lists of the 'table'.
+    """
+    table_mapping = {}
+    for idx, entry in enumerate(doc_order):
+        if entry['type'] == 'table' and idx > 0:
+            # Find the preceding 'para' key as the key for this table
+            prev_entry = doc_order[idx - 1]
+            if prev_entry['type'] == 'para' and prev_entry['out']:
+                key = prev_entry['out']
+                value = entry['out']
+                table_mapping[key] = value
+    return table_mapping
 def read_opinion(file_path):
-    with zipfile.ZipFile(file_path) as docx_zip:
-        with docx_zip.open('word/document.xml') as xml_file:
-            tree = etree.parse(xml_file)
-            root = tree.getroot()
-            nsmap = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
-            result = []
-            in_table = False
-            for elem in root.iter():
-                if elem.tag == f"{{{nsmap['w']}}}tbl":
-                    in_table = True
-                    table_data = []
-                    for row in elem.findall('.//w:tr', namespaces=nsmap):
-                        row_data = [cell.text for cell in row.findall('.//w:t', namespaces=nsmap) if cell.text]
-                        table_data.append(row_data)
-                    result.append({'type': 'table', 'res': table_data})
-                    in_table = False
-                elif elem.tag == f"{{{nsmap['w']}}}p" and not in_table:
-                    text = ''.join(e.text for e in elem.iter() if e.text).strip()
-                    if text:
-                        result.append({'type': 'text', 'res': text})
-    res = create_text_table_mapping(result)
+    doc = Document(file_path)
+    # Access the underlying XML tree
+    xml_content = doc.element.body
+
+    # Define namespaces
+    namespaces = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+    table_idx =0
+    # Iterate over elements to find paragraphs and tables in order
+    doc_order = []
+    for i, element in enumerate(xml_content):
+        if element.tag.endswith('p'):
+            # This is a paragraph
+            para = element
+            # Extract paragraph text
+            texts = para.findall('.//w:t', namespaces)
+            paragraph_text = ''.join([text.text for text in texts if text is not None])
+            print(f"Element {i} - Paragraph: {paragraph_text}")
+            doc_order.append({'type':'para', 'out':paragraph_text})
+        elif element.tag.endswith('tbl'):
+            print(f"Element {i} - Table: {table_idx}")
+            table = doc.tables[table_idx]
+            table_dict=[]
+            for row in table.rows:
+                row_t = [cell.text for cell in row.cells]
+                table_dict.append(row_t)
+                print(row_t)
+            doc_order.append({'type':'table', 'out': table_dict, 'table_idx':table_idx})
+            # doc.tables[table_idx]._element.getparent().remove(doc.tables[table_idx]._element)
+            table_idx+=1
+    res = extract_table_mapping(doc_order)
+    # with zipfile.ZipFile(file_path) as docx_zip:
+    #     with docx_zip.open('word/document.xml') as xml_file:
+    #         tree = etree.parse(xml_file)
+    #         root = tree.getroot()
+    #         nsmap = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+    #         result = []
+    #         in_table = False
+    #         for elem in root.iter():
+    #             if elem.tag == f"{{{nsmap['w']}}}tbl":
+    #                 in_table = True
+    #                 table_data = []
+    #                 for row in elem.findall('.//w:tr', namespaces=nsmap):
+    #                     row_data = [cell.text for cell in row.findall('.//w:t', namespaces=nsmap) if cell.text]
+    #                     table_data.append(row_data)
+    #                 result.append({'type': 'table', 'res': table_data})
+    #                 in_table = False
+    #             elif elem.tag == f"{{{nsmap['w']}}}p" and not in_table:
+    #                 text = ''.join(e.text for e in elem.iter() if e.text).strip()
+    #                 if text:
+    #                     result.append({'type': 'text', 'res': text})
+    # res = create_text_table_mapping(result)
     return res
 
 def read_docx(file):
@@ -135,6 +180,7 @@ def compare_texts(text1, text2, json_input):
                         break
         op_res = {}
         for key, table in text2.items():
+
             if any(b in key for b in opinion_block):
                 df = pd.DataFrame(table)
                 html_table = df.to_html(index=False, escape=False)
